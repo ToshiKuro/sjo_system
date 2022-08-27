@@ -1,0 +1,2 @@
+class FlightDatum < ApplicationRecord
+end
