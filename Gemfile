@@ -54,5 +54,9 @@ end
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 
 
+# HAML
+gem 'haml-rails'
+gem 'erb2haml'
+
 # nokogiri
 gem 'nokogiri'
