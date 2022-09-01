@@ -10,14 +10,17 @@ class FlightDatum < ApplicationRecord
       noc_js   = Rails.application.credentials.noc[:js]
 
       options  = Selenium::WebDriver::Chrome::Options.new
-      #options.add_argument('--headless')
+      options.add_argument('--headless')
       driver   = Selenium::WebDriver.for :chrome, options: options
 
       #waitに60秒のタイマーを持たせる
       wait     = Selenium::WebDriver::Wait.new(timeout: 60)
 
-      table    = []
-      table_tr = []
+      records  = []
+      record   = []
+      key      = [:flight_data_id, :date, :callsign, :registration, :departure, :scheduled_time_of_departure, :departure_spot,
+                 :arrival, :scheduled_time_of_arrival, :arrival_spot, :block_time, :booked_adults, :booked_children, :booked_infants,
+                 :crew_configuration, :block_out, :take_off, :estimated_time_of_arrival, :landing, :block_in, :pilot_in_command]
 
       #siteを開く
       driver.navigate.to(noc_url1)
@@ -75,16 +78,26 @@ class FlightDatum < ApplicationRecord
             break
           elsif i > 8 then
             tr.css('td').each do |td|
-              table_tr << td.text
+              record << td.text
             end
-            table << table_tr
-            table_tr = []
+            records << record
+            record = []
           end
 
         end
       end
 
-      table
+      driver.quit
+
+      records.each do |record|
+        unless record[3].blank?
+          record.slice!(20..22) if record.size == 24
+          flight_data = [key, record].transpose.to_h
+          FlightDatum.find_or_initialize_by(flight_data_id: flight_data[:flight_data_id]).update_attributes(flight_data)
+        end
+      end
+
+      records
 
     end
   end
