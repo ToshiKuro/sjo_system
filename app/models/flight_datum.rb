@@ -1,7 +1,7 @@
 class FlightDatum < ApplicationRecord
 
   class << self
-    def get_table()
+    def get_table(select_date)
 
       noc_url1 = Rails.application.credentials.noc[:url1]
       noc_url2 = Rails.application.credentials.noc[:url2]
@@ -18,7 +18,7 @@ class FlightDatum < ApplicationRecord
 
       records  = []
       record   = []
-      key      = [:flight_data_id, :date, :callsign, :registration, :departure, :scheduled_time_of_departure, :departure_spot,
+      key      = [:flight_datum_id, :date, :callsign, :registration, :departure, :scheduled_time_of_departure, :departure_spot,
                  :arrival, :scheduled_time_of_arrival, :arrival_spot, :block_time, :booked_adults, :booked_children, :booked_infants,
                  :crew_configuration, :block_out, :take_off, :estimated_time_of_arrival, :landing, :block_in, :pilot_in_command]
 
@@ -49,7 +49,6 @@ class FlightDatum < ApplicationRecord
 
       #データ・シート表示
       #日付選択
-      select_date = DateTime.now.strftime("%d%b%y")
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidFrom').clear
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidFrom').send_keys(select_date)
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidTo').clear
@@ -92,12 +91,11 @@ class FlightDatum < ApplicationRecord
       records.each do |record|
         unless record[3].blank?
           record.slice!(20..22) if record.size == 24
-          flight_data = [key, record].transpose.to_h
-          FlightDatum.find_or_initialize_by(flight_data_id: flight_data[:flight_data_id]).update_attributes(flight_data)
+          record[1].slice!(7..-1)
+          flight_datum = [key, record].transpose.to_h
+          FlightDatum.find_or_initialize_by(flight_datum_id: flight_datum[:flight_datum_id]).update_attributes(flight_datum)
         end
       end
-
-      records
 
     end
   end

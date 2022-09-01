@@ -1,5 +1,7 @@
 class ManagementsController < ApplicationController
   def index
-    @test_data = FlightDatum.get_table()
+    select_date = DateTime.now.strftime("%d%b%y")
+    FlightDatum.get_table(select_date)
+    @table_data = FlightDatum.where(date: select_date)
   end
 end

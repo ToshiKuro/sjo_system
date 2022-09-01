@@ -1,1 +1,48 @@
-%p= @test_data
+%table{border: 1}
+  %tr
+    %th ID
+    %th DATE
+    %th FLT No.
+    %th Ship No.
+    %th PIC
+    %th CREW
+    %th DEP
+    %th STD
+    %th SPOT
+    %th ARR
+    %th STA
+    %th SPOT
+    %th BLX
+    %th AD
+    %th CH
+    %th IN
+    %th B/O
+    %th T/O
+    %th ETA
+    %th L/D
+    %th B/I
+    /%th TTL PAX
+    /%th Payload
+  - @table_data.each do |row|
+    %tr
+      %td= row.flight_datum_id
+      %td= row.date
+      %td= row.callsign
+      %td= row.registration
+      %td= row.pilot_in_command
+      %td= row.crew_configuration
+      %td= row.departure
+      %td= row.scheduled_time_of_departure
+      %td= row.departure_spot
+      %td= row.arrival
+      %td= row.scheduled_time_of_arrival
+      %td= row.arrival_spot
+      %td= row.block_time
+      %td= row.booked_adults
+      %td= row.booked_children
+      %td= row.booked_infants
+      %td= row.block_out
+      %td= row.take_off
+      %td= row.estimated_time_of_arrival
+      %td= row.landing
+      %td= row.block_in
