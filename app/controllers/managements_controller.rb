@@ -7,6 +7,7 @@ class ManagementsController < ApplicationController
   end
 
   def test
+    ArrivalInformation.get_arrival_information()
   end
 
 end
