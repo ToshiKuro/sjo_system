@@ -1,13 +1,14 @@
 class ArrivalInformation
 
   class << self
+
     def get_arrival_information()
       opcenter_url = Rails.application.credentials.opcenter[:url]
       opcenter_id  = Rails.application.credentials.opcenter[:id]
       opcenter_pw  = Rails.application.credentials.opcenter[:pw]
 
       options      = Selenium::WebDriver::Chrome::Options.new
-      #options.add_argument('--headless')
+      options.add_argument('--headless')
       driver       = Selenium::WebDriver.for :chrome, options: options
 
       #waitに60秒のタイマーを持たせる
@@ -15,17 +16,82 @@ class ArrivalInformation
 
       #siteを開く
       driver.navigate.to(opcenter_url)
+      wait.until { driver.find_element(:id, 'id_username').displayed? }
+      sleep 3
 
-      input_id = driver.find_element(:id, 'id_username')
-      input_pw = driver.find_element(:id, 'id_password')
+      input_id     = driver.find_element(:id, 'id_username')
+      input_pw     = driver.find_element(:id, 'id_password')
 
       input_id.send_keys(opcenter_id)
       input_pw.send_keys(opcenter_pw)
 
       driver.find_element(:xpath, '//*[@id="login_block"]/div[3]/input').click
       wait.until { driver.find_element(:id, 'center_section').displayed? }
-      sleep 5
+      sleep 3
+
+      ##arrival informationの抽出
+      #ページ情報の取得
+      doc = Nokogiri::HTML(driver.page_source)
+
+      #arrival informationをclickしてmsgを表示させる
+      doc.css('.message_row').each do |msg_row|
+        if msg_row.xpath('td[3]').text.include?('ARR')
+          msg_id = msg_row.get_attribute('id')
+          driver.find_element(:id, msg_id).click
+        end
+      end
+      sleep 3
+
+      #ページ情報を再取得し、siteを閉じる
+      doc = Nokogiri::HTML(driver.page_source)
+      driver.quit
+
+      #メール用のarrival informationを抽出
+      select_msg = doc.css('pre').select { |value| value.text.include?('QU ANPOCIJ') }
+      self.get_mail_msg(select_msg)
     end
+
+    def get_mail_msg(select_msg)
+      mail_msg            = []
+
+      select_msg.each do |msg|
+        text_msg              = msg.text
+        date                  = text_msg.slice(20..21) + DateTime.now.strftime("%b%y")
+        callsign              = text_msg.slice(34..39)
+
+        reference_point       = text_msg.index('/AD')
+        arrival_start_point   = reference_point + 4
+        arrival_end_point     = reference_point + 7
+        departure_start_point = reference_point - 4
+        departure_end_point   = reference_point - 1
+
+        arrival               = text_msg.slice(arrival_start_point..arrival_end_point)
+        departure             = text_msg.slice(departure_start_point..departure_end_point)
+
+        #メール用にcallsignを修正
+        if callsign.include?('/') then
+          callsign            = callsign.insert(2, '0').delete('/')
+          text_msg            = text_msg.insert(39, callsign).slice!(34..38)
+        end
+
+        #該当flight_datum検索用にcallsignを修正
+        callsign.slice!(0..2)
+        callsign_for_search   = 'SJO' + callsign
+        flight_datum          = FlightDatum.where(date: date, callsign: callsign_for_search, arrival: arrival, block_in: '')
+
+        #flight_datumがない = 既にblock inしている場合はループを抜ける
+        break if flight_datum[0].nil?
+
+        #メール用に不要な文字列を削除し、departureを修正
+        text_msg.slice!(0..26)
+        text_msg.sub(departure, flight_datum[0].departure)
+
+        mail_msg << text_msg
+      end
+
+      mail_msg
+    end
+
   end
 
 end

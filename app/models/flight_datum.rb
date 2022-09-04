@@ -90,7 +90,16 @@ class FlightDatum < ApplicationRecord
 
       records.each do |record|
         unless record[3].blank?
-          record.slice!(20..22) if record.size == 24
+          #余分な空白を削除
+          case record.size
+          when 22 then
+            record.slice!(-2)
+          when 23 then
+            record.slice!(-3..-2)
+          when 24 then
+            record.slice!(-4..-2)
+          end
+
           record[1].slice!(7..-1)
           flight_datum = [key, record].transpose.to_h
           FlightDatum.find_or_initialize_by(flight_datum_id: flight_datum[:flight_datum_id]).update_attributes(flight_datum)
