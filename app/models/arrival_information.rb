@@ -2,7 +2,7 @@ class ArrivalInformation
 
   class << self
 
-    def get_arrival_information()
+    def get_arrival_information
       opcenter_url = Rails.application.credentials.opcenter[:url]
       opcenter_id  = Rails.application.credentials.opcenter[:id]
       opcenter_pw  = Rails.application.credentials.opcenter[:pw]

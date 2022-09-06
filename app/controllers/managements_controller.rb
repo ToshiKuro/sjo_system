@@ -7,7 +7,7 @@ class ManagementsController < ApplicationController
   end
 
   def test
-    @mail_msg = ArrivalInformation.get_arrival_information()
+    @mail_msg = ArrivalInformation.get_arrival_information
   end
 
 end
