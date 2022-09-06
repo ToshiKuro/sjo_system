@@ -52,7 +52,7 @@ class ArrivalInformation
     end
 
     def get_mail_msg(select_msg)
-      mail_msg            = []
+      mail_msg                = []
 
       select_msg.each do |msg|
         text_msg              = msg.text
@@ -69,7 +69,7 @@ class ArrivalInformation
         departure             = text_msg.slice(departure_start_point..departure_end_point)
 
         #メール用にcallsignを修正
-        if callsign.include?('/') then
+        if callsign.include?('/')
           callsign            = callsign.insert(2, '0').delete('/')
           text_msg            = text_msg.insert(39, callsign).slice!(34..38)
         end
@@ -79,7 +79,7 @@ class ArrivalInformation
         callsign_for_search   = 'SJO' + callsign
         flight_datum          = FlightDatum.where(date: date, callsign: callsign_for_search, arrival: arrival, block_in: '')
 
-        #flight_datumがない = 既にblock inしている場合はループを抜ける
+        #flight_datumがない、または既にblock inしている場合はループを抜ける
         break if flight_datum[0].nil?
 
         #メール用に不要な文字列を削除し、departureを修正

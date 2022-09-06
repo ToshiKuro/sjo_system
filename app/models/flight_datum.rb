@@ -1,8 +1,8 @@
 class FlightDatum < ApplicationRecord
 
   class << self
-    def get_table(select_date)
 
+    def get_table(select_date)
       noc_url1 = Rails.application.credentials.noc[:url1]
       noc_url2 = Rails.application.credentials.noc[:url2]
       noc_id   = Rails.application.credentials.noc[:id]
@@ -15,12 +15,6 @@ class FlightDatum < ApplicationRecord
 
       #waitに60秒のタイマーを持たせる
       wait     = Selenium::WebDriver::Wait.new(timeout: 60)
-
-      records  = []
-      record   = []
-      key      = [:flight_datum_id, :date, :callsign, :registration, :departure, :scheduled_time_of_departure, :departure_spot,
-                 :arrival, :scheduled_time_of_arrival, :arrival_spot, :block_time, :booked_adults, :booked_children, :booked_infants,
-                 :crew_configuration, :block_out, :take_off, :estimated_time_of_arrival, :landing, :block_in, :pilot_in_command]
 
       #siteを開く
       driver.navigate.to(noc_url1)
@@ -67,46 +61,68 @@ class FlightDatum < ApplicationRecord
       wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div/table/tbody/tr[10]').displayed? }
       sleep 5
 
-      #データ・シートから運航データを抽出
-      doc = Nokogiri::HTML(driver.page_source)
+      #データ・シートから運航データを抽出し、保存する
+      doc         = Nokogiri::HTML(driver.page_source)
+      flight_data = get_flight_data(doc)
+
+      save_flight_data(flight_data)
+      driver.quit
+    end
+
+    def get_flight_data(doc)
+      flight_data  = []
+      flight_datum = []
 
       doc.xpath('//*[@id="ReportViewerReportPanel"]/div').each do |sheet|
         sheet.xpath('table/tbody/tr').each_with_index do |tr, i|
 
-          if i > 8 && tr.css('td').text == '' then
+          #9行目から、先頭が空白でないデータを抽出
+          if i > 8 && tr.css('td').text == ''
             break
-          elsif i > 8 then
+          elsif i > 8
             tr.css('td').each do |td|
-              record << td.text
+              flight_datum << td.text
             end
-            records << record
-            record = []
+
+            flight_data << flight_datum
+            flight_datum = []
           end
 
         end
       end
 
-      driver.quit
+      flight_data
+    end
 
-      records.each do |record|
-        unless record[3].blank?
-          #余分な空白を削除
-          case record.size
-          when 22 then
-            record.slice!(-2)
-          when 23 then
-            record.slice!(-3..-2)
-          when 24 then
-            record.slice!(-4..-2)
+    def save_flight_data(flight_data)
+      key      = [:flight_datum_id, :date, :callsign, :domestic, :registration, :departure, :arrival, :scheduled_time_of_departure,
+                 :scheduled_time_of_arrival, :block_time, :booked_adults, :booked_children, :booked_infants, :crew_configuration,
+                 :arrival_spot, :departure_spot, :block_out, :estimated_time_of_arrival, :take_off, :landing, :block_in, :pilot_in_command]
+
+      flight_data.each do |flight_datum|
+        unless flight_datum[4].blank?
+
+          #余分な空白を削除し、データ数を調整する
+          if flight_datum[14].blank?
+            flight_datum.delete('')
+            flight_datum.insert(14, '')
+
+            (22 - flight_datum.size).times do
+              flight_datum.insert(-2, '')
+            end
+          elsif flight_datum.size > 22
+            (flight_datum.size - 22).times do
+              flight_datum.delete_at(-2)
+            end
           end
 
-          record[1].slice!(7..-1)
-          flight_datum = [key, record].transpose.to_h
+          flight_datum[1].slice!(7..-1)
+          flight_datum = [key, flight_datum].transpose.to_h
           FlightDatum.find_or_initialize_by(flight_datum_id: flight_datum[:flight_datum_id]).update_attributes(flight_datum)
         end
       end
-
     end
+
   end
 
 end

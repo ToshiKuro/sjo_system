@@ -5,13 +5,14 @@ class CreateFlightData < ActiveRecord::Migration[6.0]
       t.integer :flight_datum_id
       t.string  :date
       t.string  :callsign
+      t.string  :domestic
       t.string  :registration
       t.string  :departure
-      t.string  :scheduled_time_of_departure
-      t.string  :departure_spot
       t.string  :arrival
-      t.string  :scheduled_time_of_arrival
+      t.string  :departure_spot
       t.string  :arrival_spot
+      t.string  :scheduled_time_of_departure
+      t.string  :scheduled_time_of_arrival
       t.string  :block_time
       t.integer :booked_adults
       t.integer :booked_children
