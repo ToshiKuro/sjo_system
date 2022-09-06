@@ -86,6 +86,8 @@ class ArrivalInformation
         text_msg.slice!(0..26)
         text_msg.sub(departure, flight_datum[0].departure)
 
+        ArrivalMailer.forward_mail(text_msg).deliver_now
+
         mail_msg << text_msg
       end
 
