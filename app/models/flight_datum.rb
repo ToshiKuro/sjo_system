@@ -3,20 +3,32 @@ class FlightDatum < ApplicationRecord
   class << self
 
     def get_table(select_date)
-      noc_url1 = Rails.application.credentials.noc[:url1]
-      noc_url2 = Rails.application.credentials.noc[:url2]
-      noc_id   = Rails.application.credentials.noc[:id]
-      noc_pw   = Rails.application.credentials.noc[:pw]
-      noc_js   = Rails.application.credentials.noc[:js]
-
       options  = Selenium::WebDriver::Chrome::Options.new
       options.add_argument('--headless')
       driver   = Selenium::WebDriver.for :chrome, options: options
-
       #waitに60秒のタイマーを持たせる
-      wait     = Selenium::WebDriver::Wait.new(timeout: 60)
+      wait     = Selenium::WebDriver::Wait.new(timeout: 120)
 
       #siteを開く
+      login_to_noc(driver)
+      wait.until { driver.find_element(:id, 'menuToggle').displayed? }
+
+      #データ・シート表示
+      open_flight_data(select_date, driver, wait)
+
+      #データ・シートから運航データを抽出し、保存する
+      doc         = Nokogiri::HTML(driver.page_source)
+      flight_data = get_flight_data(doc)
+
+      save_flight_data(flight_data)
+      driver.quit
+    end
+
+    def login_to_noc(driver)
+      noc_url1 = Rails.application.credentials.noc[:url1]
+      noc_id   = Rails.application.credentials.noc[:id]
+      noc_pw   = Rails.application.credentials.noc[:pw]
+
       driver.navigate.to(noc_url1)
 
       input_id = driver.find_element(:id, 'txtUserName')
@@ -26,20 +38,20 @@ class FlightDatum < ApplicationRecord
       input_pw.send_keys(noc_pw)
 
       driver.find_element(:id, 'btnSub').click
-      wait.until { driver.find_element(:id, 'menuToggle').displayed? }
+    end
 
-      #運航データのsiteを開く
+    def open_flight_data(select_date, driver, wait)
+      noc_url2 = Rails.application.credentials.noc[:url2]
       driver.navigate.to(noc_url2)
+      wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div').displayed? }
+      sleep 3
 
       #selectタブを操作
       select_element = driver.find_element(:id, 'CPHcontent_ctl00_DP_ReportFilters')
-      wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div/table').displayed? }
-      sleep 5
-
       choose_element = Selenium::WebDriver::Support::Select.new(select_element)
       choose_element.select_by(:text, "SYSTEM DATA")
-      wait.until { driver.find_element(:id, 'CPHcontent_ctl00_OptiosRow').displayed? }
-      sleep 5
+      wait.until { driver.find_element(:id, 'CPHcontent_ctl00_LB_Extras2_LBDestination').displayed? }
+      sleep 3
 
       #データ・シート表示
       #日付選択
@@ -47,26 +59,18 @@ class FlightDatum < ApplicationRecord
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidFrom').send_keys(select_date)
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidTo').clear
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidTo').send_keys(select_date)
-      sleep 3
 
       #シート表示
       driver.find_element(:id, 'CPHcontent_BtnRun').click
       wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div/table/tbody/tr[10]').displayed? }
-      sleep 5
+      sleep 3
 
       #全ページ表示
       driver.find_element(:xpath, '//td[contains(text(), "Single Page")]').click
       sleep 1
       driver.find_element(:xpath, '//td[contains(text(), "Continuous")]').click
       wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div/table/tbody/tr[10]').displayed? }
-      sleep 5
-
-      #データ・シートから運航データを抽出し、保存する
-      doc         = Nokogiri::HTML(driver.page_source)
-      flight_data = get_flight_data(doc)
-
-      save_flight_data(flight_data)
-      driver.quit
+      sleep 3
     end
 
     def get_flight_data(doc)
