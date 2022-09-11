@@ -3,5 +3,6 @@ Rails.application.routes.draw do
 
   root 'managements#index'
 
-  get  'test' => 'managements#test'
+  get  'get_flight_data'             => 'managements#get_flight_data'
+  get  'forward_arrival_information' => 'managements#forward_arrival_information'
 end
