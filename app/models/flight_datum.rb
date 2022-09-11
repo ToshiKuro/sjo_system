@@ -1,28 +1,34 @@
 class FlightDatum < ApplicationRecord
 
   class << self
+
     def get_table(select_date)
-
-      noc_url1 = Rails.application.credentials.noc[:url1]
-      noc_url2 = Rails.application.credentials.noc[:url2]
-      noc_id   = Rails.application.credentials.noc[:id]
-      noc_pw   = Rails.application.credentials.noc[:pw]
-      noc_js   = Rails.application.credentials.noc[:js]
-
       options  = Selenium::WebDriver::Chrome::Options.new
       options.add_argument('--headless')
       driver   = Selenium::WebDriver.for :chrome, options: options
-
       #waitに60秒のタイマーを持たせる
-      wait     = Selenium::WebDriver::Wait.new(timeout: 60)
-
-      records  = []
-      record   = []
-      key      = [:flight_datum_id, :date, :callsign, :registration, :departure, :scheduled_time_of_departure, :departure_spot,
-                 :arrival, :scheduled_time_of_arrival, :arrival_spot, :block_time, :booked_adults, :booked_children, :booked_infants,
-                 :crew_configuration, :block_out, :take_off, :estimated_time_of_arrival, :landing, :block_in, :pilot_in_command]
+      wait     = Selenium::WebDriver::Wait.new(timeout: 120)
 
       #siteを開く
+      login_to_noc(driver)
+      wait.until { driver.find_element(:id, 'menuToggle').displayed? }
+
+      #データ・シート表示
+      open_flight_data(select_date, driver, wait)
+
+      #データ・シートから運航データを抽出し、保存する
+      doc         = Nokogiri::HTML(driver.page_source)
+      flight_data = get_flight_data(doc)
+
+      save_flight_data(flight_data)
+      driver.quit
+    end
+
+    def login_to_noc(driver)
+      noc_url1 = Rails.application.credentials.noc[:url1]
+      noc_id   = Rails.application.credentials.noc[:id]
+      noc_pw   = Rails.application.credentials.noc[:pw]
+
       driver.navigate.to(noc_url1)
 
       input_id = driver.find_element(:id, 'txtUserName')
@@ -32,20 +38,20 @@ class FlightDatum < ApplicationRecord
       input_pw.send_keys(noc_pw)
 
       driver.find_element(:id, 'btnSub').click
-      wait.until { driver.find_element(:id, 'menuToggle').displayed? }
+    end
 
-      #運航データのsiteを開く
+    def open_flight_data(select_date, driver, wait)
+      noc_url2 = Rails.application.credentials.noc[:url2]
       driver.navigate.to(noc_url2)
+      wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div').displayed? }
+      sleep 3
 
       #selectタブを操作
       select_element = driver.find_element(:id, 'CPHcontent_ctl00_DP_ReportFilters')
-      wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div/table').displayed? }
-      sleep 5
-
       choose_element = Selenium::WebDriver::Support::Select.new(select_element)
       choose_element.select_by(:text, "SYSTEM DATA")
-      wait.until { driver.find_element(:id, 'CPHcontent_ctl00_OptiosRow').displayed? }
-      sleep 5
+      wait.until { driver.find_element(:id, 'CPHcontent_ctl00_LB_Extras2_LBDestination').displayed? }
+      sleep 3
 
       #データ・シート表示
       #日付選択
@@ -53,51 +59,74 @@ class FlightDatum < ApplicationRecord
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidFrom').send_keys(select_date)
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidTo').clear
       driver.find_element(:id, 'CPHcontent_ctl00_UC_DateSpan_dpValidTo').send_keys(select_date)
-      sleep 3
 
       #シート表示
       driver.find_element(:id, 'CPHcontent_BtnRun').click
       wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div/table/tbody/tr[10]').displayed? }
-      sleep 5
+      sleep 3
 
       #全ページ表示
       driver.find_element(:xpath, '//td[contains(text(), "Single Page")]').click
       sleep 1
       driver.find_element(:xpath, '//td[contains(text(), "Continuous")]').click
       wait.until { driver.find_element(:xpath, '//*[@id="ReportViewerReportPanel"]/div/table/tbody/tr[10]').displayed? }
-      sleep 5
+      sleep 3
+    end
 
-      #データ・シートから運航データを抽出
-      doc = Nokogiri::HTML(driver.page_source)
+    def get_flight_data(doc)
+      flight_data  = []
+      flight_datum = []
 
       doc.xpath('//*[@id="ReportViewerReportPanel"]/div').each do |sheet|
         sheet.xpath('table/tbody/tr').each_with_index do |tr, i|
 
-          if i > 8 && tr.css('td').text == '' then
+          #9行目から、先頭が空白でないデータを抽出
+          if i > 8 && tr.css('td').text == ''
             break
-          elsif i > 8 then
+          elsif i > 8
             tr.css('td').each do |td|
-              record << td.text
+              flight_datum << td.text
             end
-            records << record
-            record = []
+
+            flight_data << flight_datum
+            flight_datum = []
           end
 
         end
       end
 
-      driver.quit
+      flight_data
+    end
 
-      records.each do |record|
-        unless record[3].blank?
-          record.slice!(20..22) if record.size == 24
-          record[1].slice!(7..-1)
-          flight_datum = [key, record].transpose.to_h
+    def save_flight_data(flight_data)
+      key      = [:flight_datum_id, :date, :callsign, :domestic, :registration, :departure, :arrival, :scheduled_time_of_departure,
+                 :scheduled_time_of_arrival, :block_time, :booked_adults, :booked_children, :booked_infants, :crew_configuration,
+                 :arrival_spot, :departure_spot, :block_out, :estimated_time_of_arrival, :take_off, :landing, :block_in, :pilot_in_command]
+
+      flight_data.each do |flight_datum|
+        unless flight_datum[4].blank?
+
+          #余分な空白を削除し、データ数を調整する
+          if flight_datum[14].blank?
+            flight_datum.delete('')
+            flight_datum.insert(14, '')
+
+            (22 - flight_datum.size).times do
+              flight_datum.insert(-2, '')
+            end
+          elsif flight_datum.size > 22
+            (flight_datum.size - 22).times do
+              flight_datum.delete_at(-2)
+            end
+          end
+
+          flight_datum[1].slice!(7..-1)
+          flight_datum = [key, flight_datum].transpose.to_h
           FlightDatum.find_or_initialize_by(flight_datum_id: flight_datum[:flight_datum_id]).update_attributes(flight_datum)
         end
       end
-
     end
+
   end
 
 end
