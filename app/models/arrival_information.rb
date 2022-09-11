@@ -34,12 +34,18 @@ class ArrivalInformation
       doc = Nokogiri::HTML(driver.page_source)
 
       #arrival informationをclickしてmsgを表示させる
-      doc.css('.message_row').each do |msg_row|
-        if msg_row.xpath('td[3]').text.include?('ARR')
+      doc.css('.message_row').each_with_index do |msg_row, i|
+        @first_msg_id = msg_row[:id] if i == 0
+
+        if @last_msg_id.present? && @last_msg_id == msg_row[:id]
+          break
+        elsif msg_row.xpath('td[3]').text.include?('ARR')
           msg_id = msg_row.get_attribute('id')
           driver.find_element(:id, msg_id).click
         end
       end
+
+      @last_msg_id = @first_msg_id
       sleep 3
 
       #ページ情報を再取得し、siteを閉じる
@@ -52,11 +58,9 @@ class ArrivalInformation
     end
 
     def get_mail_msg(select_msg)
-      mail_msg                = []
-
       select_msg.each do |msg|
         text_msg              = msg.text
-        date                  = text_msg.slice(20..21) + DateTime.now.strftime("%b%y")
+        date                  = [(DateTime.now - 1).strftime("%d%b%y"), DateTime.now.strftime("%d%b%y")]
         callsign              = text_msg.slice(34..39)
 
         reference_point       = text_msg.index('/AD')
@@ -78,20 +82,17 @@ class ArrivalInformation
         callsign.slice!(0..2)
         callsign_for_search   = 'SJO' + callsign
         flight_datum          = FlightDatum.where(date: date, callsign: callsign_for_search, arrival: arrival, block_in: '')
+                                           .where.not(block_out: '')
 
         #flight_datumがない、または既にblock inしている場合はループを抜ける
         break if flight_datum[0].nil?
 
         #メール用に不要な文字列を削除し、departureを修正
         text_msg.slice!(0..26)
-        text_msg.sub(departure, flight_datum[0].departure)
+        fix_msg = text_msg.sub(departure, flight_datum[0].departure)
 
-        ArrivalMailer.forward_mail(text_msg).deliver_now
-
-        mail_msg << text_msg
+        ArrivalMailer.forward_mail(fix_msg).deliver_now
       end
-
-      mail_msg
     end
 
   end

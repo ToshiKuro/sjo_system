@@ -5,7 +5,7 @@ $(function(){
       url:  '/get_flight_data',
       type: 'get'
     })
-    .done(function(data) {
+    .done(function() {
       if ($('#title').text() == '運航管理画面') {
         location.reload();
       }
