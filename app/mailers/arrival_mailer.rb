@@ -4,7 +4,7 @@ class ArrivalMailer < ApplicationMailer
     @arrival_msg = arrival_msg
 
     mail(from: Rails.application.credentials.gmail[:from],
-         to:   Rails.application.credentials.outlook[:address])
+         to:   Rails.application.credentials.gmail[:to])
   end
 
 end
