@@ -4,7 +4,7 @@ class FlightDatum < ApplicationRecord
 
     def get_table(select_date)
       options        = Selenium::WebDriver::Chrome::Options.new
-      options.binary = '/app/.apt/usr/bin/google-chrome' if heroku?
+      options.binary = '/app/.apt/usr/bin/google-chrome'
       options.add_argument('--headless')
       driver         = Selenium::WebDriver.for :chrome, options: options
       #waitに60秒のタイマーを持たせる
