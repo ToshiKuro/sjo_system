@@ -3,11 +3,12 @@ class FlightDatum < ApplicationRecord
   class << self
 
     def get_table(select_date)
-      options  = Selenium::WebDriver::Chrome::Options.new
+      options        = Selenium::WebDriver::Chrome::Options.new
+      options.binary = '/app/.apt/usr/bin/google-chrome' if heroku?
       options.add_argument('--headless')
-      driver   = Selenium::WebDriver.for :chrome, options: options
+      driver         = Selenium::WebDriver.for :chrome, options: options
       #waitに60秒のタイマーを持たせる
-      wait     = Selenium::WebDriver::Wait.new(timeout: 120)
+      wait           = Selenium::WebDriver::Wait.new(timeout: 120)
 
       #siteを開く
       login_to_noc(driver)
