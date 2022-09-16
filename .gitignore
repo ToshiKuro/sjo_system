@@ -40,5 +40,3 @@ yarn-debug.log*
 /config/credentials/test.key
 
 /config/credentials/production.key
-
-/config/database.yml
