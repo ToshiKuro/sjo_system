@@ -1,4 +1,10 @@
 %h1#title 運航管理画面
+
+= form_with url: root_path, method: :get, local: true do |f|
+  = f.date_field :date, value: @select_date
+  = f.label :time_zone, '(JST)'
+  = f.submit '更新'
+
 %table{border: 1}
   %tr
     %th ID
