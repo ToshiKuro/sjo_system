@@ -1,21 +1,21 @@
 class ManagementsController < ApplicationController
 
   def index
-    if params[:date].blank?
-      select_date = DateTime.now
-    else
+    #検索する日にちを選択
+    if params[:date].present?
       select_date = params[:date].to_date
-      FlightDatum.get_table(select_date.strftime("%d%b%y"))
+    else
+      select_date = DateTime.now
     end
 
-    @table_data  = FlightDatum.where(date: select_date.strftime("%d%b%y"))
-                              .order(:date, :scheduled_time_of_departure)
-    @select_date = select_date.strftime('%Y-%m-%d')
-  end
+    #当日よりも古いデータはDBから、当日以降はWebから取り込む
+    if select_date.strftime('%Y-%m-%d') < DateTime.now.strftime('%Y-%m-%d')
+      @table_data = FlightDatum.where(select_date.strftime('%d%b%y'))
+    else
+      @table_data = FlightDatum.get_table(select_date.strftime('%d%b%y'))
+    end
 
-  def get_flight_data
-    select_date =params[:select_date].to_date.strftime('%Y-%m-%d')
-    FlightDatum.get_table(select_date)
+    @select_date = select_date.strftime('%Y-%m-%d')
   end
 
   def forward_arrival_information

@@ -1,18 +1,13 @@
 $(function(){
 
   id1 = setInterval(function() {
-    var select_date = $('#date').val();;
+    var select_date = $('#date').val();
 
     $.ajax({
-      url:  '/get_flight_data',
+      url:  '/',
       type: 'get',
-      data: { select_date: select_date },
+      data: { date: select_date },
       dataType: 'json'
-    })
-    .done(function() {
-      if ($('#title').text() == '運航管理画面') {
-        location.reload();
-      }
     })
   }, 300000);
 
