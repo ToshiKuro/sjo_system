@@ -1,16 +1,10 @@
 $(function(){
 
-  id1 = setInterval(function() {
-    $.ajax({
-      url:  '/get_flight_data',
-      type: 'get'
-    })
-    .done(function() {
-      if ($('#title').text() == '運航管理画面') {
-        location.reload();
-      }
-    })
-  }, 300000);
+  if ($('#title').text() == '運航管理画面') {
+    id1 = setInterval(function() {
+      location.reload();
+    }, 300000);
+  }
 
   id2 = setInterval(function() {
     $.ajax({
