@@ -17,6 +17,7 @@ class ManagementsController < ApplicationController
     end
 
     @select_date = select_date.strftime('%Y-%m-%d')
+    forward_arrival_information
   end
 
   def forward_arrival_information
@@ -25,8 +26,8 @@ class ManagementsController < ApplicationController
 
   def get_jst_data(select_date)
     jst_data = FlightDatum.where(date: (select_date - 1).strftime('%d%b%y'),
-                                 scheduled_time_of_departure: ['15:00'..'23:59'])
-             + FlightDatum.where(date: select_date.strftime('%d%b%y'),
+                                 scheduled_time_of_departure: ['15:00'..'23:59']) +
+               FlightDatum.where(date: select_date.strftime('%d%b%y'),
                                  scheduled_time_of_departure: ['00:00'..'14:59'])
   end
 

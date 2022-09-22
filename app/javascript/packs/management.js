@@ -1,15 +1,10 @@
 $(function(){
 
-  id1 = setInterval(function() {
-    var select_date = $('#date').val();
-
-    $.ajax({
-      url:  '/',
-      type: 'get',
-      data: { date: select_date },
-      dataType: 'json'
-    })
-  }, 300000);
+  if ($('#title').text() == '運航管理画面') {
+    id1 = setInterval(function() {
+      location.reload();
+    }, 300000);
+  }
 
   id2 = setInterval(function() {
     $.ajax({

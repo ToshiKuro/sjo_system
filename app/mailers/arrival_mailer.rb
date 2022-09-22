@@ -6,7 +6,7 @@ class ArrivalMailer < ApplicationMailer
     @first_msg      = arrival_msg.chomp
 
     mail(from: Rails.application.credentials.gmail[:from],
-         to:   Rails.application.credentials.outlook[:address])
+         to:   Rails.application.credentials.gmail[:to])
   end
 
 end
