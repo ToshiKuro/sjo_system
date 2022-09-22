@@ -1,3 +1,4 @@
+
 class FlightDatum < ApplicationRecord
 
   class << self
@@ -17,11 +18,12 @@ class FlightDatum < ApplicationRecord
       open_flight_data(select_date, driver, wait)
 
       #データ・シートから運航データを抽出し、保存する
-      doc         = Nokogiri::HTML(driver.page_source)
-      flight_data = get_flight_data(doc)
-
-      save_flight_data(flight_data)
+      doc             = Nokogiri::HTML(driver.page_source)
+      row_flight_data = get_flight_data(doc)
       driver.quit
+      save_flight_data
+
+      @flight_data
     end
 
     def login_to_noc(driver)
@@ -74,8 +76,10 @@ class FlightDatum < ApplicationRecord
     end
 
     def get_flight_data(doc)
-      flight_data  = []
-      flight_datum = []
+      #以前に取得したデータを保持
+      @before_data     = @flight_data if @flight_data.present?
+      @flight_data     = []
+      row_flight_datum = []
 
       doc.xpath('//*[@id="ReportViewerReportPanel"]/div').each do |sheet|
         sheet.xpath('table/tbody/tr').each_with_index do |tr, i|
@@ -85,44 +89,60 @@ class FlightDatum < ApplicationRecord
             break
           elsif i > 8
             tr.css('td').each do |td|
-              flight_datum << td.text
+              row_flight_datum << td.text
             end
 
-            flight_data << flight_datum
-            flight_datum = []
+            #機材が割り当てられていない（=CNL等）データは削除する
+            @flight_data << adjust_flight_data(row_flight_datum) unless row_flight_datum[4].blank? 
+            row_flight_datum = []
           end
 
         end
       end
-
-      flight_data
     end
 
-    def save_flight_data(flight_data)
-      key      = [:flight_datum_id, :date, :callsign, :domestic, :registration, :departure, :arrival, :scheduled_time_of_departure,
-                 :scheduled_time_of_arrival, :block_time, :booked_adults, :booked_children, :booked_infants, :crew_configuration,
-                 :arrival_spot, :departure_spot, :block_out, :estimated_time_of_arrival, :take_off, :landing, :block_in, :pilot_in_command]
+    def adjust_flight_data(row_flight_datum)
+      #日付の余分な文字列を削除する
+      row_flight_datum[1].slice!(7..-1)
+
+      #余分な空白を削除し、データ数を調整する
+      if row_flight_datum[14].blank?
+        row_flight_datum.delete('')
+        row_flight_datum.insert(14, '')
+
+        (22 - row_flight_datum.size).times do
+          row_flight_datum.insert(-2, '')
+        end
+      elsif row_flight_datum.size > 22
+        (row_flight_datum.size - 22).times do
+          row_flight_datum.delete_at(-2)
+        end
+      end
+
+      row_flight_datum
+    end
+
+    def save_flight_data
+      key = [:flight_datum_id, :date, :callsign, :domestic, :registration, :departure, :arrival, 
+             :scheduled_time_of_departure, :scheduled_time_of_arrival, :block_time, :booked_adults,
+             :booked_children, :booked_infants, :crew_configuration, :arrival_spot, :departure_spot,
+             :block_out, :estimated_time_of_arrival, :take_off, :landing, :block_in, :pilot_in_command]
+
+      if @before_data.present?
+        flight_data = @flight_data - @before_data
+      else
+        flight_data = @flight_data
+      end
+
+      #新たに取得したデータが以前と変わらない場合は保存しない
+      return if flight_data.blank?
 
       flight_data.each do |flight_datum|
-        unless flight_datum[4].blank?
-
-          #余分な空白を削除し、データ数を調整する
-          if flight_datum[14].blank?
-            flight_datum.delete('')
-            flight_datum.insert(14, '')
-
-            (22 - flight_datum.size).times do
-              flight_datum.insert(-2, '')
-            end
-          elsif flight_datum.size > 22
-            (flight_datum.size - 22).times do
-              flight_datum.delete_at(-2)
-            end
-          end
-
-          flight_datum[1].slice!(7..-1)
+        #到着していないデータは保存しない
+        unless flight_datum[20].blank?
           flight_datum = [key, flight_datum].transpose.to_h
-          FlightDatum.find_or_initialize_by(flight_datum_id: flight_datum[:flight_datum_id]).update_attributes(flight_datum)
+          FlightDatum.find_or_initialize_by(flight_datum_id: flight_datum[:flight_datum_id])
+                     .update_attributes(flight_datum)
         end
       end
     end

@@ -54,7 +54,7 @@ class ArrivalInformation
 
       #メール用のarrival informationを抽出
       select_msg = doc.css('pre').select { |value| value.text.include?('QU ANPOCIJ') }
-      self.get_mail_msg(select_msg)
+      get_mail_msg(select_msg)
     end
 
     def get_mail_msg(select_msg)
@@ -88,7 +88,7 @@ class ArrivalInformation
         break if flight_datum[0].nil?
 
         #メール用に不要な文字列を削除し、departureを修正
-        text_msg.slice!(0..26)
+        text_msg.slice!(0..30)
         fix_msg = text_msg.sub(departure, flight_datum[0].departure)
 
         ArrivalMailer.forward_mail(fix_msg).deliver_now
