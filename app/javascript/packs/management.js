@@ -1,9 +1,9 @@
 $(function(){
 
   if ($('#title').text() == '運航管理画面') {
-    //id1 = setInterval(function() {
-    //  location.reload();
-    //}, 300000);
+    id1 = setInterval(function() {
+      location.reload();
+    }, 300000);
   }
 
   id2 = setInterval(function() {

@@ -17,7 +17,7 @@ class ManagementsController < ApplicationController
     end
 
     @select_date = select_date.strftime('%Y-%m-%d')
-    #forward_arrival_information
+    forward_arrival_information
   end
 
   def forward_arrival_information
