@@ -4,22 +4,20 @@ class ManagementsController < ApplicationController
     #検索する日にちを選択
     if params[:date].present?
       select_date = params[:date].to_date
-      jst_data    = get_jst_data(select_date)
     else
       select_date = Date.today
     end
 
-    excel_data = get_excel_data(select_date)
+    #N-OC APIからデータを取り込む
+    client   = Savon.client(:wsdl => Rails.application.credentials.soap_ui[:wsdl])
+    response = client.call(:get_flights,
+                           :message => {'Username'            => Rails.application.credentials.noc[:id],
+                                        'Password'            => Rails.application.credentials.noc[:pw],
+                                        'FlightRequestFilter' => {'From'     => '2022-10-12T00:00:00',
+                                                                  'To'       => '2022-10-12T23:00:00'},
+                                        'FlightRequestData'   => {'Aircraft' => 'true'}})
 
-    #当日よりも古いデータはDBから、当日以降はExcelから取り込む
-    if select_date < Date.today && jst_data.present?
-      @table_data = jst_data.map { |datum| datum.attributes.values}
-    elsif select_date >= Date.today && excel_data.present?
-      @table_data = excel_data
-    else
-      @table_data = []
-    end
-
+    @table_data  = response.body[:get_flights_response][:get_flights_result][:flight]
     @select_date = select_date.strftime('%Y-%m-%d')
   end
 
