@@ -12,7 +12,7 @@
     %th FLT No.
     %th Ship No.
     %th PIC
-    %th CREW
+    /%th CREW
     %th DEP
     %th STD
     %th SPOT
@@ -30,26 +30,7 @@
     %th B/I
     /%th TTL PAX
     /%th Payload
-  - @table_data.each do |datum|
+  - @table_data.each do |data|
     %tr
-      %td= datum[:unique_id]       #flight_datum_id
-      %td= datum[:flight_date]       #date
-      %td= 'SJO' + datum[:flight_number]       #callsign
-      %td= datum[:aircraft_registration]       #registration
-      /%td= datum[21]      #pilot_in_command
-      /%td= datum[13]      #crew_configuration
-      %td= datum[:departure_airport_code]       #departure
-      %td= datum[:std]       #scheduled_time_of_departure
-      /%td= datum[15]      #departure_spot
-      %td= datum[:arrival_airport_code]       #arrival
-      %td= datum[:sta]       #scheduled_time_of_arrival
-      /%td= datum[14]      #arrival_spot
-      /%td= datum[9]       #block_time
-      /%td= datum[10]      #booked_adults
-      /%td= datum[11]      #booked_children
-      /%td= datum[12]      #booked_infants
-      /%td= datum[16]      #block_out
-      /%td= datum[18]      #take_off
-      /%td= datum[17]      #estimated_time_of_arrival
-      /%td= datum[19]      #landing
-      /%td= datum[20]      #block_in
+    - data.each do |datum|
+      %td= datum
