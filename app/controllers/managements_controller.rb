@@ -9,15 +9,36 @@ class ManagementsController < ApplicationController
       select_date = Date.today
     end
 
-    #当日よりも古いデータはDBから、当日以降はWebから取り込む
+    excel_data = get_excel_data(select_date)
+
+    #当日よりも古いデータはDBから、当日以降はExcelから取り込む
     if select_date < Date.today && jst_data.present?
       @table_data = jst_data.map { |datum| datum.attributes.values}
+    elsif select_date >= Date.today && excel_data.present?
+      @table_data = excel_data
     else
-      @table_data = FlightDatum.get_table(select_date.strftime('%d%b%y'))
+      @table_data = []
     end
 
     @select_date = select_date.strftime('%Y-%m-%d')
-    forward_arrival_information
+  end
+
+  def get_excel_data(select_date)
+    xlsx        = Roo::Excelx.new("#{Dir.home}/Desktop/SEND_ARR_INFO.xlsx")
+    max_row_num = xlsx.last_row
+    excel_data  = []
+
+    max_row_num.times do |i|
+      excel_data << xlsx.sheet('schedule').row(i + 1)
+    end
+
+    next_day_index = excel_data.find_index { |row| row[1] == Date.today.strftime('%d%b%y') && row[7] >= "15:00"}
+
+    if select_date == Date.today
+      excel_data[0..(next_day_index - 1)]
+    else
+      excel_data[next_day_index..-1]
+    end
   end
 
   def forward_arrival_information

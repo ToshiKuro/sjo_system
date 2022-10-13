@@ -68,3 +68,6 @@ gem 'erb2haml'
 
 # nokogiri
 gem 'nokogiri'
+
+# Excel
+gem "roo", "~> 2.9.0"
