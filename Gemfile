@@ -70,4 +70,7 @@ gem 'erb2haml'
 gem 'nokogiri'
 
 # Excel
-gem "roo", "~> 2.9.0"
+gem 'roo', '~> 2.9.0'
+
+# SOAP UI
+gem 'savon'
