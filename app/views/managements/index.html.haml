@@ -12,7 +12,7 @@
     %th FLT No.
     %th Ship No.
     %th PIC
-    /%th CREW
+    %th CREW
     %th DEP
     %th STD
     %th SPOT
@@ -23,14 +23,14 @@
     %th AD
     %th CH
     %th IN
+    %th TTL PAX
+    %th Payload
     %th B/O
     %th T/O
     %th ETA
     %th L/D
     %th B/I
-    /%th TTL PAX
-    /%th Payload
   - @table_data.each do |data|
     %tr
     - data.each do |datum|
-      %td= datum
+      %td{style: 'text-align: center'}= datum
