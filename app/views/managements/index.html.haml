@@ -1,0 +1,36 @@
+%h1#title 運航管理画面
+
+= form_with url: root_path, method: :get, local: true do |f|
+  = f.date_field :date, value: @select_date
+  = f.label :time_zone, '(JST)'
+  = f.submit '更新'
+
+%table{border: 1}
+  %tr
+    %th ID
+    %th DATE(UTC)
+    %th FLT No.
+    %th Ship No.
+    %th PIC
+    %th CREW
+    %th DEP
+    %th STD
+    %th SPOT
+    %th ARR
+    %th STA
+    %th SPOT
+    %th BLX
+    %th AD
+    %th CH
+    %th IN
+    %th TTL PAX
+    %th Payload
+    %th B/O
+    %th T/O
+    %th ETA
+    %th L/D
+    %th B/I
+  - @table_data.each do |data|
+    %tr
+    - data.each do |datum|
+      %td{style: 'text-align: center'}= datum
